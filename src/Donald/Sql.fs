@@ -330,12 +330,12 @@ let tryQuerySingleAsync (sql : string) (param : DbParam list) (map : IDataReader
     }
 
 
-/// Execute query with no results within transction scope
+/// Execute query with no results within transaction scope
 let tranExec (sql : string) (param : DbParam list) (tran : IDbTransaction) =
     use cmd = newCommand sql param tran    
     cmd.ExecuteNonQuery() |> ignore
 
-/// Execute async query with no results within transction scope
+/// Execute async query with no results within transaction scope
 let tranExecAsync (sql : string) (param : DbParam list) (tran : IDbTransaction) =
     task {
         use cmd = newCommand sql param tran :?> DbCommand   
@@ -358,14 +358,14 @@ let execAsync (sql : string) (param : DbParam list) (conn : IDbConnection) =
         commitTran tran
     }
 
-/// Try to execute query with no results within transction scope
+/// Try to execute query with no results within transaction scope
 let tryTranExec (sql : string) (param : DbParam list) (tran : IDbTransaction) =
     try
         tranExec sql param tran
         |> DbResult
     with ex -> DbError ex
 
-/// Try to execute async query with no results within transction scope
+/// Try to execute async query with no results within transaction scope
 let tryTranExecAsync (sql : string) (param : DbParam list) (tran : IDbTransaction) =
     task {
         try
@@ -395,7 +395,7 @@ let tryExecAsync (sql : string) (param : DbParam list) (conn : IDbConnection) =
     }
 
 
-/// Execute query with no results many times within transction scope
+/// Execute query with no results many times within transaction scope
 let tranExecMany (sql : string) (manyParam : DbParam list list) (tran : IDbTransaction) =    
     use cmd = newIDbCommand sql tran    
     for param in manyParam do
@@ -403,7 +403,7 @@ let tranExecMany (sql : string) (manyParam : DbParam list list) (tran : IDbTrans
         assignDbParams cmd param
         cmd.ExecuteNonQuery() |> ignore
 
-/// Execute query async with no results many times within transction scope
+/// Execute query async with no results many times within transaction scope
 let tranExecManyAsync (sql : string) (manyParam : DbParam list list) (tran : IDbTransaction) =    
     task {
         use cmd = newIDbCommand sql tran :?> DbCommand
@@ -427,14 +427,14 @@ let execManyAsync (sql : string) (manyParam : DbParam list list) (conn : IDbConn
         commitTran tran
     }
 
-/// Try to execute query with no results many times within transction scope
+/// Try to execute query with no results many times within transaction scope
 let tryTranExecMany (sql : string) (manyParam : DbParam list list) (tran : IDbTransaction) =    
     try
         tranExecMany sql manyParam tran
         |> DbResult
     with ex -> DbError ex
 
-/// Try to execute query async with no results many times within transction scope
+/// Try to execute query async with no results many times within transaction scope
 let tryTranExecManyAsync (sql : string) (manyParam : DbParam list list) (tran : IDbTransaction) =    
     task { 
         try
