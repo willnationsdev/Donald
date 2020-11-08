@@ -71,3 +71,73 @@ let tryQuerySingleAsync (sql : string) (param : DbParam list) (map : IDataReader
             return DbResult result
         with :? DbException as ex -> return DbError ex
     }
+
+
+/// Sproc for single result within transaction scope
+let tranQuerySingleSproc (sproc : string) (param : DbParam list) (map : IDataReader -> 'a) (tran : IDbTransaction) =
+    use cmd = newSproc sproc param tran
+    use rd = cmd.ExecuteReader()
+    if rd.Read() then Some(map rd) else None
+
+/// Sproc async for single result within transaction scope
+let tranQuerySingleSprocAsync (sproc : string) (param : DbParam list) (map : IDataReader -> 'a) (tran : IDbTransaction) =
+    task {
+        use cmd = newSproc sproc param tran :?> DbCommand
+        use! rd = cmd.ExecuteReaderAsync()
+        let! canRead = rd.ReadAsync()
+        return if canRead then Some(map rd) else None
+    }
+
+/// Sproc for single result
+let querySingleSproc (sproc : string) (param : DbParam list) (map : IDataReader -> 'a) (conn : IDbConnection) =
+    use tran = beginTran conn
+    let result = tranQuerySingleSproc sproc param map tran
+    commitTran tran
+    result
+
+/// Sproc async for single result
+let querySingleSprocAsync (sproc : string) (param : DbParam list) (map : IDataReader -> 'a) (conn : IDbConnection) =
+    task {
+        use tran = beginTran conn
+        let! result = tranQuerySingleSprocAsync sproc param map tran
+        commitTran tran
+        return result
+    }
+
+
+/// Try to sproc for single result within transaction scope
+let tryTranQuerySingleSproc (sproc : string) (param : DbParam list) (map : IDataReader -> 'a) (tran : IDbTransaction) =
+    try
+        tranQuerySingleSproc sproc param map tran
+        |> DbResult
+    with :? DbException as ex -> DbError ex
+
+/// Try to sproc async for single result within transaction scope
+let tryTranQuerySingleSprocAsync (sproc : string) (param : DbParam list) (map : IDataReader -> 'a) (tran : IDbTransaction) =
+    task {
+        try
+            let! result = tranQuerySingleSprocAsync sproc param map tran
+            return DbResult result
+        with :? DbException as ex -> return DbError ex
+    }
+
+/// Try to sproc for single result
+let tryQuerySingleSproc (sproc : string) (param : DbParam list) (map : IDataReader -> 'a) (conn : IDbConnection) =
+    try
+        use tran = beginTran conn
+        let result = tranQuerySingleSproc sproc param map tran 
+        commitTran tran
+        DbResult result
+    with :? DbException as ex -> DbError ex
+
+/// Try to sproc async for single result
+let tryQuerySingleSprocAsync (sproc : string) (param : DbParam list) (map : IDataReader -> 'a) (conn : IDbConnection) =
+    task {
+        try
+            use tran = beginTran conn
+            let! result = tranQuerySingleSprocAsync sproc param map tran 
+            commitTran tran
+            return DbResult result
+        with :? DbException as ex -> return DbError ex
+    }
+

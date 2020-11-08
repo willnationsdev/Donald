@@ -93,3 +93,91 @@ let tryExecAsync
             return DbResult ()
         with :? DbException as ex -> return DbError ex
     }
+
+/// Execute sproc with no results within transction scope
+let tranExecSproc
+    (sproc : string) 
+    (param : DbParam list) 
+    (tran : IDbTransaction) : unit =
+    use cmd = newSproc sproc param tran    
+    cmd.ExecuteNonQuery() |> ignore
+
+/// Try to execute sproc with no results within transction scope
+let tryTranExecSproc
+    (sproc : string) 
+    (param : DbParam list) 
+    (tran : IDbTransaction) : DbResult<unit> =
+    try
+        tranExecSproc sproc param tran
+        |> DbResult
+    with :? DbException as ex -> DbError ex
+
+/// Execute async sproc with no results within transction scope
+let tranExecSprocAsync 
+    (sproc : string) 
+    (param : DbParam list) 
+    (tran : IDbTransaction) : Task =
+    task {
+        use cmd = newSproc sproc param tran :?> DbCommand   
+        let! _ = cmd.ExecuteNonQueryAsync()
+        return ()
+    } :> Task
+
+/// Try to execute async sproc with no results within transction scope
+let tryTranExecSprocAsync 
+    (sproc : string) 
+    (param : DbParam list) 
+    (tran : IDbTransaction) : Task<DbResult<unit>> =
+    task {
+        try
+            do! tranExecSprocAsync sproc param tran 
+            return DbResult ()
+        with :? DbException as ex -> return DbError ex
+    }
+
+/// Execute sproc with no results
+let execSproc
+    (sproc : string) 
+    (param : DbParam list) 
+    (conn : IDbConnection) : unit =
+    use tran = beginTran conn
+    tranExecSproc sproc param tran
+    commitTran tran
+
+/// Try to execute sproc with no results
+let tryExecSproc
+    (sproc : string) 
+    (param : DbParam list) 
+    (conn : IDbConnection) : DbResult<unit> =
+    try
+        use tran = beginTran conn
+        tranExecSproc sproc param tran 
+        commitTran tran
+        DbResult ()
+    with :? DbException as ex -> DbError ex
+
+/// Execute async sproc with no results
+let execSprocAsync
+    (sproc : string) 
+    (param : DbParam list) 
+    (conn : IDbConnection) : Task =
+    task {
+        use tran = beginTran conn
+        use cmd = newSproc sproc param tran :?> DbCommand
+        let! _ = cmd.ExecuteNonQueryAsync()
+        commitTran tran
+    } :> Task
+
+/// Try to execute sproc with no results
+let tryExecSprocAsync
+    (sproc : string) 
+    (param : DbParam list) 
+    (conn : IDbConnection) : Task<DbResult<unit>> =
+    task {
+        try
+            use tran = beginTran conn
+            do! tranExecSprocAsync sproc param tran 
+            commitTran tran
+            return DbResult ()
+        with :? DbException as ex -> return DbError ex
+    }
